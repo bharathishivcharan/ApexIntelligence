@@ -1,20 +1,18 @@
-import fastf1
+import fastf1 
+import os 
 import pandas as pd
 
 def get_2026_schedule():
-    print("Fetching the 2026 F1 Season Schedule...")
-    
-    # Getting the 2026 calendar
-    schedule = fastf1.get_event_schedule(2026)
-    
-    # Columns = (Race Name, Country, Date)
-    clean_schedule = schedule[['RoundNumber', 'EventName', 'EventDate', 'Country']]
-    
-    # Saving it as CSV
-    clean_schedule.to_csv('data/f1_2026_calendar.csv', index=False)
-    
-    print(" Schedule saved to data/f1_2026_calendar.csv")
-    print(clean_schedule.head()) # Checking the first few races in terminal
+     if not os.path.exists('cache'): 
+        os.makedirs('cache') 
+        fastf1.Cache.enable_cache('cache') 
+        print("Fetching 2026 schedule!") 
+        schedule = fastf1.get_event_schedule(2026) 
+        clean_schedule = schedule[['RoundNumber', 'EventName', 'EventDate', 'Country']] 
+        if not os.path.exists('data'): 
+            os.makedirs('data') 
+            clean_schedule.to_csv('data/f1_2026_calendar.csv', index=False) 
+            print("Success!")
 
-if __name__ == "__main__":
+if __name__ == "main": 
     get_2026_schedule()
