@@ -33,8 +33,8 @@ def generate_track_map(table_name, driver_name):
     line = ax.add_collection(lc)
 
     # 4. Aesthetics
-    ax.set_xlim(df['X'].min() - 500, df['X'].max() + 500)
-    ax.set_ylim(df['Y'].min() - 500, df['Y'].max() + 500)
+    ax.set_xlim(df['X'].min() - 300, df['X'].max() + 300)
+    ax.set_ylim(df['Y'].min() - 300, df['Y'].max() + 300)
     ax.axis('off') 
     ax.set_aspect('equal')
     
@@ -46,9 +46,9 @@ def generate_track_map(table_name, driver_name):
               fontsize=15, fontweight='bold', color='white', pad=20)
 
     # Save the visual for your README
-    plt.savefig(f'visuals/{driver_name}_track_map.png', bbox_inches='tight', dpi=300)
-    print(f"Track map saved to visuals/{driver_name}_track_map.png")
-    plt.show()
+    plt.savefig(f'visuals/{driver_name}_map.png', bbox_inches='tight', dpi=300)
+    print(f"Track map saved to visuals/{driver_name}_map.png")
+    
 
     if not os.path.exists('visuals'):
         os.makedirs('visuals')
