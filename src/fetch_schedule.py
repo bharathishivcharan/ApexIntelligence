@@ -14,5 +14,5 @@ def get_2026_schedule():
             clean_schedule.to_csv('data/f1_2026_calendar.csv', index=False) 
             print("Success!")
 
-if __name__ == "main": 
+if __name__ == "__main__": 
     get_2026_schedule()

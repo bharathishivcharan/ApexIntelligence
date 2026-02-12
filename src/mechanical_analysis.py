@@ -1,110 +1,73 @@
 import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
+import numpy as np
 
-def load_data(table_name):
+# Set the dark style globally
+plt.style.use('dark_background')
+
+def load_and_calculate(table_name):
     conn = sqlite3.connect('data/f1_data.db')
     df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
     conn.close()
-    
-    #  Distance calculation
+
+    # Math: Convert Speed to m/s for physics calculations
     df['Speed_ms'] = df['Speed'] / 3.6
+    
+    # Math: Distance (Cumulative sum of Speed * Time Delta)
     df['Distance'] = (df['Speed_ms'] * df['Time'].diff().fillna(0)).cumsum()
+
+    # Metric 1: Longitudinal G-Force (Acceleration/Braking)
+    acceleration = df['Speed_ms'].diff() / df['Time'].diff().fillna(0.1)
+    df['G_Long'] = acceleration / 9.81
+    
+    # Metric 2: Brake Aggressiveness (Rate of change of Brake pedal)
+    # This shows how "violent" the driver is with the initial brake hit
+    df['Brake_Rate'] = df['Brake'].diff() / df['Time'].diff().fillna(0.1)
+    
     return df
 
-def plot_mechanical(table_name, driver_name):
-    df = load_data(table_name)
-    
-    # 1. Find V-max (Top Speed)
-    v_max = df['Speed'].max()
-    # Find the distance where V-max happened
-    v_max_dist = df.loc[df['Speed'].idxmax(), 'Distance']
-    
-    fig, ax = plt.subplots(figsize=(15, 7))
-    
-    # 2. Plot the main speed line
-    ax.plot(df['Distance'], df['Speed'], label=f'{driver_name} Speed', color='green', alpha=0.3)
-    
-    # 3. Highlight Gear Shifts
-    # Plot every 20th data point for gears so the graph isn't crowded
-    for i in range(0, len(df), 20):
-        ax.annotate(int(df['nGear'].iloc[i]), 
-                    (df['Distance'].iloc[i], df['Speed'].iloc[i]),
-                    textcoords="offset points", 
-                    xytext=(0,10), 
-                    ha='center', 
-                    fontsize=8, 
-                    color='cyan')
+def plot_pro_dashboard(table1, table2, name1, name2):
+    d1 = load_and_calculate(table1)
+    d2 = load_and_calculate(table2)
 
-    # 4. Mark the Speed Trap (V-max)
-    ax.scatter(v_max_dist, v_max, color='red', s=100, zorder=5)
-    ax.annotate(f'V-max: {v_max:.1f} km/h', 
-                (v_max_dist, v_max), 
-                xytext=(0, 15), 
-                textcoords='offset points', 
-                ha='center', 
-                arrowprops=dict(arrowstyle='->', color='red'))
+    # Creating the 4-apartment building (ax[0] to ax[3])
+    fig, ax = plt.subplots(4, 1, figsize=(16, 22), sharex=True)
+    plt.subplots_adjust(hspace=0.1)
 
-    ax.set_title(f'Mechanical Analysis: {driver_name} - Monaco 2025')
-    ax.set_xlabel('Distance (meters)')
-    ax.set_ylabel('Speed (km/h)')
-    ax.grid(True, alpha=0.2)
+    # Pro Colors: Deep Red for Ferrari, Dark Teal/Emerald for Mercedes
+    c1, c2 = '#FF0000', '#00A19B'
 
-def compare_mechanical(table1, table2, name1, name2):
-    df1 = load_data(table1)
-    df2 = load_data(table2)
+    # --- Plot 1: Speed (The Result) ---
+    ax[0].plot(d1['Distance'], d1['Speed'], color=c1, label=name1, linewidth=2)
+    ax[0].plot(d2['Distance'], d2['Speed'], color=c2, label=name2, linewidth=2, linestyle='--')
+    ax[0].set_ylabel('Speed (km/h)', fontsize=12, fontweight='bold')
+    ax[0].legend(loc='upper right')
+    ax[0].grid(visible=True, alpha=0.1)
 
-    fig, ax = plt.subplots(2, 1, figsize=(15, 12), sharex=True)
+    # --- Plot 2: Throttle & Brake Overlap (Driving Style) ---
+    # Shading the area shows 'presence' better than just a line
+    ax[1].fill_between(d1['Distance'], d1['Throttle'], color=c1, alpha=0.3, label=f'{name1} Throttle')
+    ax[1].fill_between(d2['Distance'], d2['Throttle'], color=c2, alpha=0.1)
+    ax[1].plot(d1['Distance'], d1['Brake']*100, color='white', linewidth=1, label='Brake Application')
+    ax[1].set_ylabel('Pedal %', fontsize=12, fontweight='bold')
+    ax[1].set_ylim(0, 105)
 
-    # --- TOP PLOT: GEARS ---
-    # "Step" plot for gears because gears don't have "3.5", they jump from 3 to 4.
-    ax[0].step(df1['Distance'], df1['nGear'], where='post', label=name1, color='red', linewidth=2)
-    ax[0].step(df2['Distance'], df2['nGear'], where='post', label=name2, color='blue', linestyle='--', linewidth=2)
-    
-    ax[0].set_title(f'Gearing Strategy: {name1} vs {name2}')
-    ax[0].set_ylabel('Gear Number')
-    ax[0].set_ylim(0, 9)
-    ax[0].legend()
-    ax[0].grid(True, alpha=0.2)
+    # --- Plot 3: Steering Angle (Cornering) ---
+    ax[2].plot(d1['Distance'], d1['SteeringWheelAngle'], color=c1, linewidth=1.5)
+    ax[2].plot(d2['Distance'], d2['SteeringWheelAngle'], color=c2, linewidth=1.5, linestyle=':')
+    ax[2].set_ylabel('Steering Angle', fontsize=12, fontweight='bold')
+    ax[2].axhline(0, color='gray', linewidth=0.5)
 
-    # --- BOTTOM PLOT: SPEED ---
-    ax[1].plot(df1['Distance'], df1['Speed'], color='darkblue', label=name1)
-    ax[1].plot(df2['Distance'], df2['Speed'], color='darkred', linestyle='--', label=name2)
-    
-    ax[1].set_ylabel('Speed (km/h)')
-    ax[1].set_xlabel('Distance (meters)')
-    ax[1].legend()
-    ax[1].grid(True, alpha=0.2)
+    # --- Plot 4: G-Force (The Physics Stress) ---
+    ax[3].plot(d1['Distance'], d1['G_Long'], color=c1, alpha=0.8)
+    ax[3].plot(d2['Distance'], d2['G_Long'], color=c2, alpha=0.6, linestyle='--')
+    ax[3].set_ylabel('G-Force (Long)', fontsize=12, fontweight='bold')
+    ax[3].set_xlabel('Distance (meters)', fontsize=12)
+    ax[3].axhline(0, color='white', linewidth=1)
 
-    plt.tight_layout()
-    
-
-def plot_rpm_profile(table_name, driver_name):
-    df = load_data(table_name)
-    
-    plt.figure(figsize=(15, 6))
-    
-    # 1. Plot RPM
-    scatter = plt.scatter(df['Distance'], df['RPM'], c=df['nGear'], cmap='viridis', s=1)
-    
-    # 2. Add a Colorbar to show which color is which gear
-    cbar = plt.colorbar(scatter)
-    cbar.set_label('Gear')
-    
-    plt.title(f'Engine Power Band: {driver_name} - Monaco 2025')
-    plt.xlabel('Distance (meters)')
-    plt.ylabel('RPM')
-    plt.grid(True, alpha=0.3)
-    
+    plt.suptitle(f'Apex Intelligence: {name1} vs {name2} Performance Analysis', fontsize=16)
+    plt.show()
 
 if __name__ == "__main__":
-    TABLE_LEC = 'telemetry_LEC_Monaco_2025'
-    TABLE_HAM = 'telemetry_HAM_Monaco_2025'
-    
-    plot_mechanical(TABLE_LEC, "Leclerc")
-    compare_mechanical(TABLE_LEC, TABLE_HAM, "Leclerc", "Hamilton")
-    plot_rpm_profile(TABLE_LEC, "Leclerc")   
-    # show everything at once!
-    print("Opening all analysis windows...")
-    plt.show()
+    plot_pro_dashboard('telemetry_LEC_Monaco_2025', 'telemetry_HAM_Monaco_2025', "Leclerc", "Hamilton")
