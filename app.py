@@ -24,16 +24,24 @@ st.title("Apex Intelligence: Command Center")
 # Sidebar for picking the driver/session
 st.sidebar.header("Session Control")
 available_data = get_all_sessions()
+selected_session = "No Data Available"
 
 if available_data:
-    # This creates the dropdown "Remote Control"
-    selected_session = st.sidebar.selectbox("Select Telemetry Data:", available_data)
-    st.sidebar.success(f"Connected to: {selected_session}")
+    # Using this function to make table names nicer
+    display_names = [name.replace('_', ' ') for name in available_data]
+    
+    #Using Zip to make a better name for the table
+    name_map = dict(zip(display_names, available_data))
+    
+    selected_display = st.sidebar.selectbox("Select Telemetry Data:", display_names)
+    selected_session = name_map[selected_display] # This is the real name we use for code
+    
+    st.sidebar.success(f"Connected to: {selected_display}")
 else:
     st.sidebar.error("Database is empty. Waiting for Robot update...")
 
 # --- ANALYSIS TABS ---
-tab1, tab2 = st.tabs(["📊 Performance Overview", "📜 2026 Rules (AI)"])
+tab1, tab2 = st.tabs(["Performance Overview", " 2026 Rules"])
 
 with tab1:
     st.subheader(f"Session Analysis: {selected_session if available_data else 'No Data'}")
@@ -48,3 +56,4 @@ with tab1:
 
 with tab2:
     st.warning("RAG Agent Offline: Rulebook integration scheduled for Day 8.")
+    
