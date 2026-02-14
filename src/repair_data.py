@@ -2,7 +2,6 @@ import fastf1
 import sqlite3
 import os
 
-# We use the Capital 'C' version which is the current standard
 try:
     fastf1.Cache.enable_cache('cache') 
 except AttributeError:

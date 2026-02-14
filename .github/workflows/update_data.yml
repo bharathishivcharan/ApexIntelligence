@@ -1,0 +1,42 @@
+
+name: F1 Data Auto-Update
+
+on:
+  #  "Cron" tells the robot to wake up every Sunday at midnight
+  schedule:
+    - cron: '0 0 * * 0' 
+  #  Allows YOU to trigger the robot manually whenever you want
+  workflow_dispatch: 
+
+jobs:
+  update-process:
+    # We tell GitHub to rent a temporary Linux computer to run this
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: The robot "downloads" your code onto its temporary computer
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # Step 3:
+      - name: Install dependencies
+        run: pip install fastf1 pandas
+
+      # Step 4: 
+      - name: Run Data Update
+        run: python src/repair_data.py
+
+      # Step 5: 
+      - name: Save new data to GitHub
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/f1_data.db
+          git commit -m "chore: automated database update [skip ci]" || echo "No changes"
+          git push
