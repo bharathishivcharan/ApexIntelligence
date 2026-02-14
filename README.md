@@ -26,7 +26,12 @@ A distance-based comparison of velocity, providing a "heartbeat" of the lap.
 * **Storage:** `SQLite` for structured telemetry management.
 * **Visualization:** `Matplotlib` using `LineCollection` for multi-dimensional spatial plots.
 
-## 🚀 How to Run
-1. Clone the repo.
-2. Run `python src/repair_data.py` to initialize the database with full engineering channels.
-3. Run `python src/driver_performance.py` to generate the analysis dashboard.
+## 🚀 How to Run the Dashboard
+1. Clone the repository.
+2. Install dependencies:  
+   `pip install -r requirements.txt`
+3. Launch the Command Center:  
+   `streamlit run app.py`
+
+---
+*Note: This project is currently in the **Sprint Phase**. Upcoming features include AI-powered strategy agents and 2026 Regulation RAG integration.*
