@@ -100,4 +100,27 @@ if available_data:
             st.pyplot(fig)
 
 with tab2:
-    st.info("The AI Rulebook Agent will be integrated here on Day 8.")
+    st.header("FIA 2026 Technical Regulations")
+    st.info("This AI tool searches the official 2026 Rulebook to explain car behavior.")
+
+    query = st.text_input("What would you like to know about the 2026 rules?", 
+                         placeholder="e.g., Active Aerodynamics, Engine Power, Hybrid System")
+
+    if query:
+        from src.rule_processor import load_rules, create_chunks
+        
+        
+        with st.spinner("Scanning the Rulebook..."):
+            text = load_rules("knowledge_base/2026_regs.pdf")
+            chunks = create_chunks(text)
+            
+            
+            matches = [c for c in chunks if query.lower() in c.lower()]
+        
+        if matches:
+            st.subheader(f"Found {len(matches)} relevant articles:")
+            for i, match in enumerate(matches):
+                with st.expander(f"Rule Reference {i+1}"):
+                    st.write(match)
+        else:
+            st.warning(f"I couldn't find any specific rules about '{query}'. Try a different keyword.")
