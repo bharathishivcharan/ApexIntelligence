@@ -100,27 +100,27 @@ if available_data:
             st.pyplot(fig)
 
 with tab2:
-    st.header("FIA 2026 Technical Regulations")
-    st.info("This AI tool searches the official 2026 Rulebook to explain car behavior.")
+    st.header("🏎️ 2026 Technical Assistant")
+    st.write("I've read the FIA rulebook. Ask me anything!")
 
-    query = st.text_input("What would you like to know about the 2026 rules?", 
-                         placeholder="e.g., Active Aerodynamics, Engine Power, Hybrid System")
+    # Initialization: 
+    if "vector_db" not in st.session_state:
+        with st.spinner("Reading the Rulebook... (This takes 10 seconds the first time)"):
+            from src.rule_processor import load_rules, create_chunks, get_vector_db
+            raw_text = load_rules("knowledge_base/2026_regs.pdf")
+            chunks = create_chunks(raw_text)
+            st.session_state.vector_db = get_vector_db(chunks)
+            st.success("Librarian is ready!")
+
+    # The Chat Interface
+    query = st.chat_input("Explain the 2026 Engine rules...")
 
     if query:
-        from src.rule_processor import load_rules, create_chunks
-        
-        
-        with st.spinner("Scanning the Rulebook..."):
-            text = load_rules("knowledge_base/2026_regs.pdf")
-            chunks = create_chunks(text)
+        with st.chat_message("user"):
+            st.write(query)
             
-            
-            matches = [c for c in chunks if query.lower() in c.lower()]
-        
-        if matches:
-            st.subheader(f"Found {len(matches)} relevant articles:")
-            for i, match in enumerate(matches):
-                with st.expander(f"Rule Reference {i+1}"):
-                    st.write(match)
-        else:
-            st.warning(f"I couldn't find any specific rules about '{query}'. Try a different keyword.")
+        with st.chat_message("assistant"):
+            with st.spinner("Consulting the regulations..."):
+                from src.rule_processor import ask_ai
+                response = ask_ai(query, st.session_state.vector_db)
+                st.write(response)
