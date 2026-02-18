@@ -104,7 +104,7 @@ with tab1:
         diff = abs(avg1 - avg2)
         faster = d1.split()[0] if avg1 > avg2 else d2.split()[0]
         
-        st.success(f"🏎️ Race Engineer Insight: **{faster}** is faster by **{diff:.2f} km/h** on average.")
+        st.success(f" Race Engineer Insight: **{faster}** is faster by **{diff:.2f} km/h** on average.")
         
         # 3. DISPLAY GRAPHS
         st.subheader("Head-to-Head Telemetry")
