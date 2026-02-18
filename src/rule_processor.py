@@ -1,50 +1,49 @@
 import os
 import PyPDF2
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_ollama import OllamaLLM
 
 def load_rules(filepath):
-    """Reads the rulebook, handling both .txt and .pdf files."""
-    if not os.path.exists(filepath):
-        return "Rulebook not found."
-    
-    # Check if the file is a PDF
-    if filepath.lower().endswith('.pdf'):
+    """Same as yesterday: Reads the PDF/Text."""
+    if not os.path.exists(filepath): return ""
+    if filepath.endswith('.pdf'):
         text = ""
-        try:
-            with open(filepath, 'rb') as f: # 'rb' means Read Binary
-                pdf_reader = PyPDF2.PdfReader(f)
-                # Loop through every page and grab the text
-                for page in pdf_reader.pages:
-                    content = page.extract_text()
-                    if content:
-                        text += content + "\n"
-            return text
-        except Exception as e:
-            return f"Error reading PDF: {e}"
-    
-    # For normal text file
+        with open(filepath, 'rb') as f:
+            pdf = PyPDF2.PdfReader(f)
+            for page in pdf.pages:
+                text += page.extract_text() + "\n"
+        return text
     else:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return f.read()
+        with open(filepath, 'r') as f: return f.read()
 
-def create_chunks(text, chunk_size=300): # Smaller chunks are better for PDFs
-    """Breaks long text into smaller pieces for the AI."""
-    if not text:
-        return []
+def create_chunks(text, chunk_size=500):
+    """Breaks text into pieces so the AI doesn't get overwhelmed."""
     words = text.split()
-    chunks = []
-    for i in range(0, len(words), chunk_size):
-        chunk = " ".join(words[i:i + chunk_size])
-        chunks.append(chunk)
-    return chunks
+    return [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
 
-if __name__ == "__main__":
-    # Test with your PDF
-    path = "knowledge_base/2026_regs.pdf"
-    raw_text = load_rules(path)
-    chunks = create_chunks(raw_text)
+def get_vector_db(chunks):
+    """The 'Aisle Mapper': Turns text into searchable math coordinates."""
+    # This model 'all-MiniLM-L6-v2' is FREE
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    vector_db = FAISS.from_texts(chunks, embeddings)
+    return vector_db
+
+def ask_ai(query, vector_db):
+    """The 'Expert': Finds the rule and explains it."""
+    # 1. Find the top 2 most relevant paragraphs
+    docs = vector_db.similarity_search(query, k=2)
+    context = "\n".join([d.page_content for d in docs])
     
-    print(f"Librarian Report:")
-    print(f"- File: {path}")
-    print(f"- Total Chunks created: {len(chunks)}")
-    if chunks:
-        print(f"- First 100 characters: {chunks[0][:100]}...")
+    # 2. Ask our local Llama 3 brain to explain it
+    llm = OllamaLLM(model="llama3.2:1b")
+    
+    prompt = f"""
+    You are an F1 Technical Engineer. Use the following rulebook snippets to answer the user.
+    If the answer isn't in the snippets, say you don't know.
+    
+    Rules: {context}
+    Question: {query}
+    Answer:"""
+    
+    return llm.invoke(prompt)
