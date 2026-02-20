@@ -2,7 +2,6 @@ streamlit
 pandas
 matplotlib
 fastf1
-sqlite3
 langchain
 langchain-groq
 langchain-huggingface
