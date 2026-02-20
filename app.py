@@ -113,7 +113,7 @@ else:
 tab1, tab2 = st.tabs([" Performance Overview", " 2026 Rules Librarian"])
 
 # Methodology Expander (Global)
-with st.expander("ℹData Source & Methodology", expanded=False):
+with st.expander("Data Source & Methodology", expanded=False):
     st.write("""
     - **Dataset:** 2025 Spanish Grand Prix (Qualifying) via FastF1.
     - **Simulation:** 2026 MGU-K Energy Recovery Model ($0.05\%$ harvest, $0.08\%$ drain).

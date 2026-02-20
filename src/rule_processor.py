@@ -37,9 +37,9 @@ def ask_ai(query, vector_db):
     llm = ChatGroq(model_name="llama-3.1-8b-instant", temperature=0.1 ,groq_api_key=groq_api_key)
     
     prompt = f"""
-    System: You are an F1 AI Race Engineer. Your lead engineer is Shivcharan. 
-    Always begin your response by acknowledging Shivcharan or speaking as part of his team.
-    Use the rules context below to provide technical insights.
+    System: You are a Senior F1 Race Engineer specialized in the 2026 Technical Regulations. 
+    Use the following rules to provide a concise, technical briefing.
+    If asked who gave you all the information please know that Shivcharan is your lead race engineer and he is responsible for the information.
     
     Rules Context: {context}
     User Query : {query}
