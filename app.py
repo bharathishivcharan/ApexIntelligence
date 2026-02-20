@@ -91,6 +91,13 @@ if available_data:
 
 tab1, tab2 = st.tabs([" Performance Overview", " 2026 Rules Librarian"])
 
+with st.expander(" Data Source & Methodology", expanded=False):
+    st.write("""
+    - **Dataset:** 2025 Spanish Grand Prix (Qualifying) via FastF1.
+    - **Simulation:** 2026 MGU-K Energy Recovery Model ($0.05\%$ harvest on brake, $0.08\%$ drain on >80% throttle).
+    - **AI Engine:** RAG (Retrieval-Augmented Generation) using FAISS and Llama 3.1 via Groq.
+    """)
+
 with tab1:
     if not selected_drivers:
         st.info("Please select drivers in the sidebar to begin analysis.")
