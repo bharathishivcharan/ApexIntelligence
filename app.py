@@ -9,7 +9,7 @@ import numpy as np
 st.set_page_config(page_title="Apex Intelligence 2026", layout="wide")
 plt.style.use('dark_background') 
 
-# --- DATA LOGIC ---
+# DATA LOGIC 
 def get_all_sessions():
     if not os.path.exists('data/f1_data.db'): return []
     conn = sqlite3.connect('data/f1_data.db')
@@ -79,20 +79,40 @@ def plot_track_dominance(data1, data2, name1, name2):
     ax.set_title(f"Track Dominance: {name1.split()[0]} vs {name2.split()[0]}", color='white')
     return fig
 
-# MAIN UI 
+#  MAIN UI
 st.title("Apex Intelligence: Command Center")
+
+# 1. Fetch available tables from SQLite
 available_data = get_all_sessions()
 
 if available_data:
+    # 2. Map database names to readable names 
     display_names = [name.replace('telemetry_', '').replace('_', ' ').title() for name in available_data]
     name_map = dict(zip(display_names, available_data))
+    
+    # 3. Define drivers_list for use elsewhere if needed
     drivers_list = display_names
-    st.sidebar.info("💡 Select 2 drivers to unlock the 'Battle Mode' analytics suite.")
-    selected_drivers = st.sidebar.multiselect("Select Drivers:", display_names)
-    all_selected_data = {name: load_telemetry(name_map[name]) for name in selected_drivers}
-else:
-    drivers_list = []
 
+    st.sidebar.header("Configuration")
+    st.sidebar.info("💡 Select 2 drivers to unlock the Battle Mode.")
+    
+   
+    selected_drivers = st.sidebar.multiselect(
+        "Select Drivers:", 
+        options=drivers_list, 
+        key="driver_selector"
+    )
+
+    all_selected_data = {name: load_telemetry(name_map[name]) for name in selected_drivers}
+
+else:
+    # Fallback if database is empty or missing
+    st.sidebar.error("No telemetry data found in database.")
+    drivers_list = []
+    selected_drivers = []
+    all_selected_data = {}
+
+#  TABS
 tab1, tab2 = st.tabs([" Performance Overview", " 2026 Rules Librarian"])
 
 with st.expander(" Data Source & Methodology", expanded=False):
