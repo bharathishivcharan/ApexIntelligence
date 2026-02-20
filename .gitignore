@@ -1,7 +1,21 @@
-venv/
+# Python bytecode (prevents those annoying __pycache__ folders)
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Environment files (NEVER upload your local secrets)
 .env
-#data/*.db
-data/*.csv
-cache/
+.streamlit/secrets.toml
+
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# OS-specific junk
 .DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
