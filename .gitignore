@@ -1,7 +1,7 @@
 venv/
 __pycache__/
 .env
-data/*.db
+#data/*.db
 data/*.csv
 cache/
 .DS_Store
