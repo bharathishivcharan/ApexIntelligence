@@ -79,7 +79,7 @@ def plot_track_dominance(data1, data2, name1, name2):
     ax.set_title(f"Track Dominance: {name1.split()[0]} vs {name2.split()[0]}", color='white')
     return fig
 
-#  MAIN UI
+# MAIN UI
 st.title("Apex Intelligence: Command Center")
 
 # 1. Fetch available tables from SQLite
@@ -89,58 +89,55 @@ if available_data:
     # 2. Map database names to readable names 
     display_names = [name.replace('telemetry_', '').replace('_', ' ').title() for name in available_data]
     name_map = dict(zip(display_names, available_data))
-    
-    # 3. Define drivers_list for use elsewhere if needed
     drivers_list = display_names
 
     st.sidebar.header("Configuration")
-    st.sidebar.info("💡 Select 2 drivers to unlock the Battle Mode.")
+    st.sidebar.info("💡 Select drivers here to analyze telemetry and rules.")
     
-   
+    # 3. SELECTOR
     selected_drivers = st.sidebar.multiselect(
         "Select Drivers:", 
         options=drivers_list, 
-        key="driver_selector"
+        key="main_driver_selector" # Unique key prevents duplicate widget errors
     )
 
+    # 4. Load data ONLY for what is selected
     all_selected_data = {name: load_telemetry(name_map[name]) for name in selected_drivers}
-
 else:
-    # Fallback if database is empty or missing
-    st.sidebar.error("No telemetry data found in database.")
+    st.sidebar.error("Database not found! Ensure 'data/f1_data.db' is on GitHub.")
     drivers_list = []
     selected_drivers = []
     all_selected_data = {}
 
-#  TABS
+#  TABS 
 tab1, tab2 = st.tabs([" Performance Overview", " 2026 Rules Librarian"])
 
-with st.expander(" Data Source & Methodology", expanded=False):
+# Methodology Expander (Global)
+with st.expander("ℹData Source & Methodology", expanded=False):
     st.write("""
     - **Dataset:** 2025 Spanish Grand Prix (Qualifying) via FastF1.
-    - **Simulation:** 2026 MGU-K Energy Recovery Model ($0.05\%$ harvest on brake, $0.08\%$ drain on >80% throttle).
-    - **AI Engine:** RAG (Retrieval-Augmented Generation) using FAISS and Llama 3.1 via Groq.
+    - **Simulation:** 2026 MGU-K Energy Recovery Model ($0.05\%$ harvest, $0.08\%$ drain).
+    - **AI Engine:** RAG using FAISS and Llama 3.3 via Groq.
     """)
 
+# --- TAB 1: PERFORMANCE ---
 with tab1:
-
-    selected_drivers = []
-    selected_drivers = st.multiselect("Select Drivers", drivers_list)
     if not selected_drivers:
-        st.warning("Please select at least one driver to see the analysis.")
-        st.stop()
+        st.warning(" Please select at least one driver in the sidebar to begin.")
     else:
         # 1. INDIVIDUAL ANALYSIS CARDS
         for driver in selected_drivers:
-            with st.expander(f"Data Profile: {driver}", expanded=(len(selected_drivers)==1)):
-                df = all_selected_data[driver]
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Top Speed", f"{df['Speed'].max():.1f} km/h")
-                c2.metric("Avg Speed", f"{df['Speed'].mean():.1f} km/h")
-                c3.metric("Data Points", len(df))
-                st.pyplot(plot_professional_telemetry(df, driver))
+            # Safety check: ensures the driver actually exists in our data dictionary
+            if driver in all_selected_data:
+                with st.expander(f"Data Profile: {driver}", expanded=(len(selected_drivers)==1)):
+                    df = all_selected_data[driver]
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("Top Speed", f"{df['Speed'].max():.1f} km/h")
+                    c2.metric("Avg Speed", f"{df['Speed'].mean():.1f} km/h")
+                    c3.metric("Data Points", len(df))
+                    st.pyplot(plot_professional_telemetry(df, driver))
 
-        # 2. BATTLE MODE (Maximum Detailing)
+        # 2. BATTLE MODE (Active when exactly 2 are selected)
         if len(selected_drivers) == 2:
             st.divider()
             st.header("Head-to-Head Battle Analysis")
@@ -149,12 +146,10 @@ with tab1:
             data1 = calculate_2026_energy(all_selected_data[d1_name])
             data2 = calculate_2026_energy(all_selected_data[d2_name])
 
-            # Layout: Track Map and Sector Table
             col_left, col_right = st.columns([1.5, 1])
             with col_left:
                 st.subheader("Circuit Dominance Map")
                 st.pyplot(plot_track_dominance(data1, data2, d1_name, d2_name))
-                st.caption(f"Color Key: {d1_name} (#00A19B) | {d2_name} (#FF0000)")
             
             with col_right:
                 st.subheader("Sector Pace (km/h)")
@@ -164,90 +159,51 @@ with tab1:
                     d1_name.split()[0].upper(): [f"{s1['S1']:.1f}", f"{s1['S2']:.1f}", f"{s1['S3']:.1f}"],
                     d2_name.split()[0].upper(): [f"{s2['S1']:.1f}", f"{s2['S2']:.1f}", f"{s2['S3']:.1f}"]
                 })
-
-                # Display it without the index column
-                st.dataframe(comp_df, hide_index=True, width="stretch")
+                st.dataframe(comp_df, hide_index=True, use_container_width=True)
                 
-                
-                # AI Insights Button
-
                 if st.button("Generate AI Engineer Briefing"):
                     if "vector_db" in st.session_state:
                         from src.rule_processor import ask_ai
-        
-                        # Create a detailed prompt based on the actual data we see on screen
-                        avg_v1 = data1['Speed'].mean()
-                        avg_v2 = data2['Speed'].mean()
-                        faster_driver = d1_name if avg_v1 > avg_v2 else d2_name
-        
-                        summary_query = (
-                            f"Compare {d1_name} and {d2_name}. "
-                            f"{faster_driver} is faster on average by {abs(avg_v1-avg_v2):.1f} km/h. "
-                            f"Based on 2026 Technical Regulations, how should the slower driver adjust "
-                            f"their energy recovery (MGU-K) strategy to compete?"
-                        )
-        
-                        with st.spinner("Race Engineer is thinking..."):
-                            response = ask_ai(summary_query, st.session_state.vector_db)
-                            st.markdown(f"Engineer's Report\n{response}")
+                        avg_v1, avg_v2 = data1['Speed'].mean(), data2['Speed'].mean()
+                        faster = d1_name if avg_v1 > avg_v2 else d2_name
+                        query = f"Compare {d1_name} and {d2_name}. {faster} is faster. Suggest 2026 MGU-K strategies."
+                        with st.spinner("Consulting Rulebook..."):
+                            st.info(ask_ai(query, st.session_state.vector_db))
                     else:
-                        st.warning("Please go to the '2026 Rules Librarian' tab and click 'Initialize Librarian' first!")
+                        st.error("Go to Tab 2 and Initialize Librarian first!")
 
-            # 3. ENERGY SIMULATION
             st.subheader("2026 Energy Deployment Simulation (MGU-K)")
             fig_ers, ax_ers = plt.subplots(figsize=(12, 3))
-            ax_ers.plot(data1.index, data1['SoC'], color='#00A19B', label=f"{d1_name} SoC")
-            ax_ers.plot(data2.index, data2['SoC'], color='#FF0000', label=f"{d2_name} SoC")
+            ax_ers.plot(data1.index, data1['SoC'], color='#00A19B', label=d1_name)
+            ax_ers.plot(data2.index, data2['SoC'], color='#FF0000', label=d2_name)
             ax_ers.set_ylabel("Battery %")
             ax_ers.legend()
             st.pyplot(fig_ers)
 
-            # 4. SPEED DELTA
-            st.subheader(f"Live Speed Delta: {d1_name.split()[0].upper()} vs {d2_name.split()[0].upper()}")
-            v1, v2 = data1['Speed'].values, data2['Speed'].values
-            min_l = min(len(v1), len(v2))
-            delta = v1[:min_l] - v2[:min_l]
-            fig_d, ax_d = plt.subplots(figsize=(12, 3))
-            ax_d.fill_between(range(min_l), delta, 0, where=(delta>=0), color='#15FF00', alpha=0.3, label=f"{d1_name.split()[0]} Faster")
-            ax_d.fill_between(range(min_l), delta, 0, where=(delta<0), color='#FF0000', alpha=0.3, label=f"{d2_name.split()[0]} Faster")
-            ax_d.plot(delta, color='white', linewidth=0.5, alpha=0.5)
-            ax_d.axhline(0, color='gray', linestyle='--')
-            ax_d.legend(loc='upper right')
-            st.pyplot(fig_d)
-
+#  TAB 2: LIBRARIAN 
 with tab2:
     st.header("2026 Technical Assistant")
-
-    # 1. Check for API Key FIRST
+    
     if "GROQ_API_KEY" not in st.secrets:
-        st.error("Missing API Key! Please add 'GROQ_API_KEY' to Streamlit Secrets.")
+        st.error("Missing 'GROQ_API_KEY' in Streamlit Secrets!")
     else:
-        # 2. Show initialization button only if DB doesn't exist
         if "vector_db" not in st.session_state:
-            st.info("The Librarian needs to process the 2026 Regulations before answering.")
-            if st.button("🚀 Initialize Librarian"):
+            st.info("The Librarian needs to process the 2026 Regulations.")
+            if st.button(" Initialize Librarian"):
                 try:
-                    with st.spinner("Race Engineer is reading the rulebook..."):
+                    with st.spinner("Analyzing Knowledge Base..."):
                         from src.rule_processor import load_rules, create_chunks, get_vector_db
                         raw_text = load_rules("knowledge_base") 
                         chunks = create_chunks(raw_text)
                         st.session_state.vector_db = get_vector_db(chunks)
-                        st.success("Librarian is ready!")
                         st.rerun()
                 except Exception as e:
-                    st.error(f"Failed to initialize: {e}")
-
-        # 3. Show Chat UI only if DB is ready
+                    st.error(f"Init Error: {e}")
         else:
-            st.success("Engineer is Online 🟢")
-            query = st.chat_input("Ask a question about the 2026 rules...")
-            if query:
-                with st.chat_message("user"): 
-                    st.write(query)
+            st.success("Engineer is Online ")
+            user_q = st.chat_input("Ask about the 2026 Technical Regs...")
+            if user_q:
+                with st.chat_message("user"): st.write(user_q)
                 with st.chat_message("assistant"):
-                    try:
-                        from src.rule_processor import ask_ai
-                        response = ask_ai(query, st.session_state.vector_db)
-                        st.write(response)
-                    except Exception as e:
-                        st.error(f"AI Error: {e}")
+                    from src.rule_processor import ask_ai
+                    st.write(ask_ai(user_q, st.session_state.vector_db))
