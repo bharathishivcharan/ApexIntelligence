@@ -2,11 +2,14 @@ streamlit
 pandas
 matplotlib
 fastf1
+sqlite3
 langchain
 langchain-groq
 langchain-huggingface
+langchain-community
 langchain-text-splitters
 faiss-cpu
 PyPDF2
 numpy
 python-dotenv
+sentence-transformers
