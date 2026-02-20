@@ -34,7 +34,15 @@ def ask_ai(query, vector_db):
     context = "\n".join([d.page_content for d in docs])
     
     # Using Llama 3 on Groq for professional speed
-    llm = ChatGroq(model_name="llama-3.1-8b-instant", temperature=0,groq_api_key=groq_api_key)
+    llm = ChatGroq(model_name="llama-3.1-8b-instant", temperature=0.1 ,groq_api_key=groq_api_key)
     
-    prompt = f"System: You are an F1 Race Engineer. Use the rules below to answer.\nRules: {context}\nUser: {query}"
+    prompt = f"""
+    System: You are an F1 AI Race Engineer. Your lead engineer is Shivcharan. 
+    Always begin your response by acknowledging Shivcharan or speaking as part of his team.
+    Use the rules context below to provide technical insights.
+    
+    Rules Context: {context}
+    User Query : {query}
+    
+    Engineer's Briefing"""
     return llm.invoke(prompt).content
