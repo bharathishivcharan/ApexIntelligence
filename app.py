@@ -197,18 +197,37 @@ with tab1:
 
 with tab2:
     st.header("2026 Technical Assistant")
-    if st.button("Initialize Librarian"):
-        with st.spinner("Analyzing Knowledge Base..."):
-            from src.rule_processor import load_rules, create_chunks, get_vector_db
-            raw_text = load_rules("knowledge_base") 
-            chunks = create_chunks(raw_text)
-            st.session_state.vector_db = get_vector_db(chunks)
-            st.success("Librarian is ready!")
 
-    if "vector_db" in st.session_state:
-        query = st.chat_input("Ask a question about the 2026 rules...")
-        if query:
-            with st.chat_message("user"): st.write(query)
-            with st.chat_message("assistant"):
-                from src.rule_processor import ask_ai
-                st.write(ask_ai(query, st.session_state.vector_db))
+    # 1. Check for API Key FIRST
+    if "GROQ_API_KEY" not in st.secrets:
+        st.error("Missing API Key! Please add 'GROQ_API_KEY' to Streamlit Secrets.")
+    else:
+        # 2. Show initialization button only if DB doesn't exist
+        if "vector_db" not in st.session_state:
+            st.info("The Librarian needs to process the 2026 Regulations before answering.")
+            if st.button("🚀 Initialize Librarian"):
+                try:
+                    with st.spinner("Race Engineer is reading the rulebook..."):
+                        from src.rule_processor import load_rules, create_chunks, get_vector_db
+                        raw_text = load_rules("knowledge_base") 
+                        chunks = create_chunks(raw_text)
+                        st.session_state.vector_db = get_vector_db(chunks)
+                        st.success("Librarian is ready!")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to initialize: {e}")
+
+        # 3. Show Chat UI only if DB is ready
+        else:
+            st.success("Engineer is Online 🟢")
+            query = st.chat_input("Ask a question about the 2026 rules...")
+            if query:
+                with st.chat_message("user"): 
+                    st.write(query)
+                with st.chat_message("assistant"):
+                    try:
+                        from src.rule_processor import ask_ai
+                        response = ask_ai(query, st.session_state.vector_db)
+                        st.write(response)
+                    except Exception as e:
+                        st.error(f"AI Error: {e}")
