@@ -82,12 +82,16 @@ def plot_track_dominance(data1, data2, name1, name2):
 # MAIN UI 
 st.title("Apex Intelligence: Command Center")
 available_data = get_all_sessions()
+
 if available_data:
     display_names = [name.replace('telemetry_', '').replace('_', ' ').title() for name in available_data]
     name_map = dict(zip(display_names, available_data))
+    drivers_list = display_names
     st.sidebar.info("💡 Select 2 drivers to unlock the 'Battle Mode' analytics suite.")
     selected_drivers = st.sidebar.multiselect("Select Drivers:", display_names)
     all_selected_data = {name: load_telemetry(name_map[name]) for name in selected_drivers}
+else:
+    drivers_list = []
 
 tab1, tab2 = st.tabs([" Performance Overview", " 2026 Rules Librarian"])
 
@@ -99,8 +103,12 @@ with st.expander(" Data Source & Methodology", expanded=False):
     """)
 
 with tab1:
+
+    selected_drivers = []
+    selected_drivers = st.multiselect("Select Drivers", drivers_list)
     if not selected_drivers:
-        st.info("Please select drivers in the sidebar to begin analysis.")
+        st.warning("Please select at least one driver to see the analysis.")
+        st.stop()
     else:
         # 1. INDIVIDUAL ANALYSIS CARDS
         for driver in selected_drivers:
