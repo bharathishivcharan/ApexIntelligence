@@ -19,3 +19,6 @@ Thumbs.db
 # IDE settings
 .vscode/
 .idea/
+
+#Other
+.streamlit/secrets.toml
